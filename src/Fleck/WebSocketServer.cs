@@ -12,10 +12,11 @@ namespace Fleck
     public class WebSocketServer : IWebSocketServer
     {
         private readonly string _scheme;
+        private readonly int _connectionLimit;
         private readonly IPAddress _locationIP;
         private Action<IWebSocketConnection> _config;
 
-        public WebSocketServer(string location, bool supportDualStack = true)
+        public WebSocketServer(string location, int connectionLimit, bool supportDualStack = true)
         {
             var uri = new Uri(location);
 
@@ -25,6 +26,7 @@ namespace Fleck
 
             _locationIP = ParseIPAddress(uri);
             _scheme = uri.Scheme;
+            _connectionLimit = connectionLimit;
             var socket = new Socket(_locationIP.AddressFamily, SocketType.Stream, ProtocolType.IP);
 
             socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, 1);
@@ -48,7 +50,7 @@ namespace Fleck
         public X509Certificate2 Certificate { get; set; }
         public SslProtocols EnabledSslProtocols { get; set; }
         public IEnumerable<string> SupportedSubProtocols { get; set; }
-        public bool RestartAfterListenError {get; set; }
+        public bool RestartAfterListenError { get; set; }
 
         public bool IsSecure
         {
@@ -64,15 +66,22 @@ namespace Fleck
         {
             string ipStr = uri.Host;
 
-            if (ipStr == "0.0.0.0" ){
+            if (ipStr == "0.0.0.0")
+            {
                 return IPAddress.Any;
-            }else if(ipStr == "[0000:0000:0000:0000:0000:0000:0000:0000]")
+            }
+            else if (ipStr == "[0000:0000:0000:0000:0000:0000:0000:0000]")
             {
                 return IPAddress.IPv6Any;
-            } else {
-                try {
+            }
+            else
+            {
+                try
+                {
                     return IPAddress.Parse(ipStr);
-                } catch (Exception ex) {
+                }
+                catch (Exception ex)
+                {
                     throw new FormatException("Failed to parse the IP address part of the location. Please make sure you specify a valid IP address. Use 0.0.0.0 or [::] to listen on all interfaces.", ex);
                 }
             }
@@ -82,7 +91,7 @@ namespace Fleck
         {
             var ipLocal = new IPEndPoint(_locationIP, Port);
             ListenerSocket.Bind(ipLocal);
-            ListenerSocket.Listen(100);
+            ListenerSocket.Listen(_connectionLimit);
             Port = ((IPEndPoint)ListenerSocket.LocalEndPoint).Port;
             FleckLog.Info(string.Format("Server started at {0} (actual port {1})", Location, Port));
             if (_scheme == "wss")
@@ -105,9 +114,11 @@ namespace Fleck
 
         private void ListenForClients()
         {
-            ListenerSocket.Accept(OnClientConnect, e => {
+            ListenerSocket.Accept(OnClientConnect, e =>
+            {
                 FleckLog.Error("Listener socket is closed", e);
-                if(RestartAfterListenError){
+                if (RestartAfterListenError)
+                {
                     FleckLog.Info("Listener socket restarting");
                     try
                     {
