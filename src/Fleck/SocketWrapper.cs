@@ -3,21 +3,20 @@ using System.IO;
 using System.Net;
 using System.Net.Security;
 using System.Net.Sockets;
-using System.Runtime.InteropServices;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Threading;
 using Fleck.Helpers;
+using Fleck.CertificateChecker;
 
 namespace Fleck
 {
     public class SocketWrapper : ISocket
     {
-    
         public const UInt32 KeepAliveInterval = 60000;
         public const UInt32 RetryInterval = 10000;
-    
+
         private readonly Socket _socket;
         private Stream _stream;
         private CancellationTokenSource _tokenSource;
@@ -40,6 +39,8 @@ namespace Fleck
                 return endpoint != null ? endpoint.Port : -1;
             }
         }
+
+        public X509Certificate2 Certificate { get; set; }
 
         public void SetKeepAlive(Socket socket, UInt32 keepAliveInterval, UInt32 retryInterval)
         {
@@ -69,12 +70,25 @@ namespace Fleck
             }
         }
 
-        public Task Authenticate(X509Certificate2 certificate, SslProtocols enabledSslProtocols, Action callback, Action<Exception> error)
+        private bool CertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            var ssl = new SslStream(_stream, false);
+            try
+            {
+                var certificateCheckerWrapper = new CertificateCheckerWrapper();
+                return certificateCheckerWrapper.Check(Certificate, certificate);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public Task Authenticate(SslProtocols enabledSslProtocols, Action callback, Action<Exception> error)
+        {
+            var ssl = new SslStream(_stream, true, new RemoteCertificateValidationCallback(CertificateValidationCallback));
             _stream = new QueuedStream(ssl);
-            Func<AsyncCallback, object, IAsyncResult> begin =
-                (cb, s) => ssl.BeginAuthenticateAsServer(certificate, false, enabledSslProtocols, false, cb, s);
+
+            Func<AsyncCallback, object, IAsyncResult> begin = (cb, s) => ssl.BeginAuthenticateAsServer(Certificate, true, enabledSslProtocols, false, cb, s);
 
             Task task = Task.Factory.FromAsync(begin, ssl.EndAuthenticateAsServer, null);
             task.ContinueWith(t => callback(), TaskContinuationOptions.NotOnFaulted)

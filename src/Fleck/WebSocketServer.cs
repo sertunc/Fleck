@@ -160,11 +160,9 @@ namespace Fleck
             if (IsSecure)
             {
                 FleckLog.Debug("Authenticating Secure Connection");
-                clientSocket
-                    .Authenticate(Certificate,
-                                  EnabledSslProtocols,
-                                  connection.StartReceiving,
-                                  e => FleckLog.Warn("Failed to Authenticate", e));
+
+                clientSocket.Certificate = Certificate;
+                clientSocket.Authenticate(EnabledSslProtocols, connection.StartReceiving, e => FleckLog.Warn("Failed to Authenticate", e));
             }
             else
             {
