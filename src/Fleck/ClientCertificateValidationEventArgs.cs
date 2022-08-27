@@ -11,7 +11,7 @@ namespace Fleck
 
         public ClientCertificateValidationEventArgs(X509Certificate clientCertificate, IWebSocketConnection socketConnection = null)
         {
-            ClientCertificate = clientCertificate ?? throw new ArgumentNullException(nameof(clientCertificate));
+            ClientCertificate = clientCertificate;
             SocketConnection = socketConnection;
         }
     }

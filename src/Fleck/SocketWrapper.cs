@@ -73,13 +73,7 @@ namespace Fleck
 
         private bool CertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            if (certificate == null)
-            {
-                return false;
-            }
-
             OnClientCertificateValidation?.Invoke(sender, new ClientCertificateValidationEventArgs(certificate));
-
             return true;
         }
 
