@@ -11,7 +11,4 @@
     <PackageTags>websockets server html5 events</PackageTags>
     <TargetFrameworks>netcoreapp2.0</TargetFrameworks>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\Fleck.CertificateChecker\Fleck.CertificateChecker.csproj" />
-  </ItemGroup>
 </Project>
