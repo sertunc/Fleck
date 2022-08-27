@@ -17,6 +17,7 @@ namespace Fleck
         bool NoDelay { get; set; }
         EndPoint LocalEndPoint { get; }
         X509Certificate2 Certificate { get; set; }
+        event EventHandler<ClientCertificateValidationEventArgs> OnClientCertificateValidation;
 
         Task<ISocket> Accept(Action<ISocket> callback, Action<Exception> error);
         Task Send(byte[] buffer, Action callback, Action<Exception> error);

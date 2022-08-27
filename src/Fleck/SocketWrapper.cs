@@ -8,7 +8,6 @@ using System.Security.Cryptography.X509Certificates;
 using System.Threading.Tasks;
 using System.Threading;
 using Fleck.Helpers;
-using Fleck.CertificateChecker;
 
 namespace Fleck
 {
@@ -42,6 +41,8 @@ namespace Fleck
 
         public X509Certificate2 Certificate { get; set; }
 
+        public event EventHandler<ClientCertificateValidationEventArgs> OnClientCertificateValidation;
+
         public void SetKeepAlive(Socket socket, UInt32 keepAliveInterval, UInt32 retryInterval)
         {
             int size = sizeof(UInt32);
@@ -72,15 +73,14 @@ namespace Fleck
 
         private bool CertificateValidationCallback(object sender, X509Certificate certificate, X509Chain chain, SslPolicyErrors sslPolicyErrors)
         {
-            try
-            {
-                var certificateCheckerWrapper = new CertificateCheckerWrapper();
-                return certificateCheckerWrapper.Check(Certificate, certificate);
-            }
-            catch
+            if (certificate == null)
             {
                 return false;
             }
+
+            OnClientCertificateValidation?.Invoke(sender, new ClientCertificateValidationEventArgs(certificate));
+
+            return true;
         }
 
         public Task Authenticate(SslProtocols enabledSslProtocols, Action callback, Action<Exception> error)

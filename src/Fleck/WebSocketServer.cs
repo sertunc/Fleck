@@ -48,6 +48,7 @@ namespace Fleck
         public bool SupportDualStack { get; }
         public int Port { get; private set; }
         public X509Certificate2 Certificate { get; set; }
+        public event EventHandler<ClientCertificateValidationEventArgs> OnClientCertificateValidation;
         public SslProtocols EnabledSslProtocols { get; set; }
         public IEnumerable<string> SupportedSubProtocols { get; set; }
         public bool RestartAfterListenError { get; set; }
@@ -163,6 +164,10 @@ namespace Fleck
 
                 clientSocket.Certificate = Certificate;
                 clientSocket.Authenticate(EnabledSslProtocols, connection.StartReceiving, e => FleckLog.Warn("Failed to Authenticate", e));
+                clientSocket.OnClientCertificateValidation += (s, e) =>
+                {
+                    OnClientCertificateValidation?.Invoke(s, new ClientCertificateValidationEventArgs(e.ClientCertificate, connection));
+                };
             }
             else
             {
